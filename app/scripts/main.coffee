@@ -33,7 +33,7 @@ window.trackSetup = ->
   filter.type = "lowpass"
   gain.connect delay
 
-  delay.delayTime.value = 0.5
+  delay.delayTime.value = 1.0
 
   delay.connect actx.destination
   gain.connect actx.destination
@@ -53,11 +53,13 @@ window.trackSetup = ->
     now = actx.currentTime
     @gain.gain.cancelScheduledValues(now)
     @gain.gain.setValueAtTime @gain.gain.value, now
-    @osc.frequency.setValueAtTime(freq, now)
-    @osc2.frequency.setValueAtTime(freq  * 2 + 2, now)
+    @osc.frequency.setValueAtTime(@osc.frequency.value, now)
+    @osc2.frequency.setValueAtTime(@osc2.frequency.value, now)
+    @osc.frequency.setValueAtTime(freq, now + 0.25)
+    @osc2.frequency.setValueAtTime(freq  * 2 + 2, now + 0.125)
     @filter.frequency.setValueAtTime(@filter.frequency.value, now)
     @filter.frequency.linearRampToValueAtTime(
-      200 + Math.random() * 200,
+      300 + ((actx.currentTime * 4) % 4) * 200,
       now + 0.1
     )
 
@@ -82,12 +84,11 @@ noteToFreq = (note) -> freqs[note]
 track = undefined
 window.createScheduler = ->
   track = trackSetup()
-  noteSequence = [0,0,0,0,0,0]
-  bpm = 90
+  noteSequence = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+  bpm = 240
 
   $(document).keydown (e) ->
     key = String.fromCharCode(e.keyCode)
-    console.log key
     scheduler.writingnote = switch key
       when 'A' then 0
       when 'W' then 1
@@ -104,7 +105,7 @@ window.createScheduler = ->
       when 'K' then 12
       else 0
 
-    if not scheduler.writing
+    if false and not scheduler.writing
       scheduler.track.noteOn(36 + scheduler.writingnote, 1)
     scheduler.writing = true
     scheduler.writingkey = key
@@ -118,10 +119,11 @@ window.createScheduler = ->
       @noteSequence[@index] = @writingnote
     if actx.currentTime > @nextEvent
       @lastEvent = actx.currentTime
-      @index = (@index + 1) % @noteSequence.length
-      if not @writing
-        track.noteOn(36 + @noteSequence[@index], 1)
+      octave = 24 + (@index % 2) * 12
+      if true or not @writing
+        track.noteOn(octave + @noteSequence[@index], 1)
       @nextEvent = actx.currentTime + (60 / bpm)
+      @index = (@index + 1) % @noteSequence.length
     setTimeout (=> @tick()) , 16
 
   scheduler = {
@@ -149,15 +151,13 @@ window.setupVisual = ->
   canvas = $('<canvas>')[0]
   $('body').append(canvas)
 
+  canvas.height = canvas.width = 200
+  canvas.style.imageRendering = "pixelated"
   ctx = canvas.getContext('2d', {
     antialias: false,
     depth: false
   })
-  canvas.height = canvas.width = 200
-  canvas.style.imageRendering = "pixelated"
   $(canvas).css {
-    width: "500px"
-    height: "500px"
   }
   $('html, body').css {
     backgroundColor: "black"
@@ -167,7 +167,7 @@ window.setupVisual = ->
   deg2rad = (degrees) -> (degrees % 360) * Math.PI / 180
   render = ->
     t = performance.now()
-    ctx.fillStyle = "rgba(0,0,0,0.005)"
+    ctx.fillStyle = "rgba(0,0,0,0.0025)"
     ctx.fillRect(0,0,canvas.width, canvas.height)
     requestAnimationFrame(render)
     cx = canvas.width / 2
@@ -187,6 +187,14 @@ window.setupVisual = ->
 
     theta = deg2rad(-90 + slice + (degreesPerSlice * dt))
     ctx.beginPath()
+    ctx.moveTo(cx, cy)
+    ctx.lineTo(cx + 200 * Math.cos(theta), cx + 200 * Math.sin(theta))
+    ctx.lineWidth = 1
+    ctx.strokeStyle = "rgba(0,0,0,0.5)"
+    ctx.stroke()
+    ctx.closePath()
+
+    ctx.beginPath()
     note = scheduler.noteSequence[scheduler.index] / 12
     ri = 25 + 40 * note
     rf = ri + (50 * level)
@@ -202,6 +210,7 @@ window.setupVisual = ->
       
     """
     ctx.stroke()
+    ctx.closePath()
 
 
     # nextEvent 

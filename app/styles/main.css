@@ -38,3 +38,14 @@ canvas {
 html, body {
   height: 100%;
 }
+
+.instructions {
+
+  position: absolute;
+  margin: 0px auto;
+  text-align: center;
+  font-size: 18px;
+  color: white;
+  width: 100%;
+  font-weight:bold;
+}
